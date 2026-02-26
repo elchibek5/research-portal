@@ -4,7 +4,7 @@ A full-stack educational and research platform built with Spring Boot 4 and MySQ
 
 ## 🚀 Tech Stack
 * **Backend:** Java 21, Spring Boot 4.0.3
-* **Database:** MySQL 8.x
+* **Database:** MySQL 9.6.0
 * **Build Tool:** Maven
 
 ## 🛠️ Getting Started
