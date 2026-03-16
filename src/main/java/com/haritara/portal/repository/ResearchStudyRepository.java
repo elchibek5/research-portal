@@ -4,5 +4,5 @@ import com.haritara.portal.model.ResearchStudy;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ResearchStudyRepository extends JpaRepository<ResearchStudy, Long> {
-    // Content will be upload later
+    // Content will be uploaded later
 }
