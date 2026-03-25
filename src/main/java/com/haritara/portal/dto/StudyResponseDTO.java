@@ -1,4 +1,9 @@
 package com.haritara.portal.dto;
 
-public class StudyResponseDTO {
-}
+public record StudyResponseDTO (
+    Long id,
+    String title,
+    String description,
+    String eligibility,
+    String compensation
+) {}
