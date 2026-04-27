@@ -4,11 +4,10 @@ import com.haritara.portal.dto.BlogPostRequestDTO;
 import com.haritara.portal.dto.BlogPostResponseDTO;
 import com.haritara.portal.service.BlogService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/blog")
@@ -20,16 +19,27 @@ public class BlogController {
         this.blogService = blogService;
     }
 
+    /**
+     * Get all blog posts with pagination support (Medium #11)
+     */
     @GetMapping
-    public ResponseEntity<List<BlogPostResponseDTO>> getAllBlogPosts() {
-        return ResponseEntity.ok(blogService.getAllBlogPosts());
+    public ResponseEntity<Page<BlogPostResponseDTO>> getAllBlogPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(blogService.getAllBlogPosts(page, size));
     }
 
+    /**
+     * Get single blog post by ID (Medium #14: with caching)
+     */
     @GetMapping("/{id}")
     public ResponseEntity<BlogPostResponseDTO> getBlogPostById(@PathVariable Long id) {
         return ResponseEntity.ok(blogService.getBlogPostById(id));
     }
 
+    /**
+     * Create new blog post (High #9: with input sanitization)
+     */
     @PostMapping
     public ResponseEntity<BlogPostResponseDTO> createBlogPost(@Valid @RequestBody BlogPostRequestDTO request) {
         BlogPostResponseDTO response = blogService.createBlogPost(request);
