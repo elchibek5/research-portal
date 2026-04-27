@@ -5,12 +5,17 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "blog_posts")
+@Table(name = "blog_posts", indexes = {
+        @Index(name = "idx_author", columnList = "author"),
+        @Index(name = "idx_created_at", columnList = "createdAt"),
+        @Index(name = "idx_title", columnList = "title")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,4 +38,10 @@ public class BlogPost {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 }
+
+
