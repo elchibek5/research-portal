@@ -7,6 +7,9 @@ import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.SendEmailRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -16,9 +19,16 @@ public class EmailService {
     @Value("${resend.api.key}")
     private String resendApiKey;
 
+    @Value("${resend.from-email}")
+    private String fromEmail;
+
     @Value("${admin.email}")
     private String adminEmail;
 
+    /**
+     * Send application notification asynchronously with retry logic (Critical #4, Low #17)
+     */
+    @Async("taskExecutor")
     public void sendApplicationNotification(StudyApplication application) {
         String subject = "New Study Application — " + application.getName();
         String html = """
@@ -35,9 +45,18 @@ public class EmailService {
                 application.getStudyId(),
                 application.getStatus()
         );
-        sendEmail(adminEmail, subject, html, "application notification for " + application.getName());
+        String context = "application notification for " + application.getName();
+        try {
+            sendEmailWithRetry(adminEmail, subject, html, context);
+        } catch (Exception e) {
+            log.error("Failed to send email after max retries: {}", context, e);
+        }
     }
 
+    /**
+     * Send inquiry notification asynchronously with retry logic (Critical #4, Low #17)
+     */
+    @Async("taskExecutor")
     public void sendInquiryNotification(ContactInquiry inquiry) {
         String subject = "New Contact Inquiry — " + inquiry.getName();
         String html = """
@@ -53,22 +72,37 @@ public class EmailService {
                 inquiry.getReason() != null ? inquiry.getReason() : "N/A",
                 inquiry.getMessage()
         );
-        sendEmail(adminEmail, subject, html, "inquiry notification for " + inquiry.getName());
+        String context = "inquiry notification for " + inquiry.getName();
+        try {
+            sendEmailWithRetry(adminEmail, subject, html, context);
+        } catch (Exception e) {
+            log.error("Failed to send email after max retries: {}", context, e);
+        }
     }
 
-    private void sendEmail(String to, String subject, String html, String context) {
+    /**
+     * Send email with exponential backoff retry (Critical #4)
+     * Max 3 attempts with increasing delay: 1s, 2s, 4s
+     */
+    @Retryable(
+            retryFor = ResendException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 1000, multiplier = 2.0)
+    )
+    private void sendEmailWithRetry(String to, String subject, String html, String context) throws ResendException {
         try {
             Resend resend = new Resend(resendApiKey);
             SendEmailRequest params = SendEmailRequest.builder()
-                    .from("notifications@haritara.com")
+                    .from(fromEmail)
                     .to(to)
                     .subject(subject)
                     .html(html)
                     .build();
             resend.emails().send(params);
-            log.info("Email sent successfully: {}", context);
+            log.info("Email sent successfully [{}]: {}", fromEmail, context);
         } catch (ResendException e) {
-            log.error("Failed to send email for {}: {}", context, e.getMessage());
+            log.warn("Failed to send email (will retry): {} - Error: {}", context, e.getMessage());
+            throw e;
         }
     }
 }
